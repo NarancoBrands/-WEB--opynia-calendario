@@ -1,0 +1,135 @@
+@use 'igniteui-angular/theming' as *;
+@use 'variables' as *;
+@use 'app-layout';
+@import 'bootstrap/scss/bootstrap';
+@import "~bootstrap/dist/css/bootstrap.min.css";
+
+/* Configuración básica */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  background-color: #93c2d0;
+}
+
+/* Ignite UI Core y temas */
+@include core();
+@include typography();
+@include theme(
+  $palette: $palette,
+  $schema: $schema
+);
+
+:root {
+  @include palette($palette);
+}
+
+.light-theme {
+  @include light-theme($palette);
+}
+
+.dark-theme {
+  background: #333;
+  color: #fff;
+  @include dark-theme(
+    $palette: $green-palette
+  );
+
+  .grid-chart-contextmenu-wrapper {
+    @include fluent-dark-theme($fluent-excel-palette);
+  }
+}
+
+.fin-dark-theme {
+  @include dark-theme($green-palette);
+  background: #333;
+
+  ::-moz-placeholder {
+    opacity: 1;
+  }
+}
+
+/* Estilos para el diseño con Bootstrap */
+.container-fluid {
+  height: 100%;
+}
+
+.row {
+  height: 100%; /* Asegura que las columnas ocupen toda la altura */
+}
+
+.col-6 {
+  display: flex;
+  justify-content: center; /* Centra el contenido horizontalmente */
+  align-items: center; /* Centra el contenido verticalmente */
+}
+
+/* Estilos personalizados para cajas de contenido */
+.content-box {
+  background-color: #f8f9fa; /* Fondo claro */
+  border: 1px solid #dee2e6; /* Borde gris claro */
+  border-radius: 10px; /* Esquinas redondeadas */
+  padding: 20px; /* Espaciado interno */
+  text-align: center; /* Centrar texto */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra ligera */
+}
+
+/* Estilos personalizados para el calendario */
+.igx-calendar {
+  background-color: #ffffff; /* Fondo principal del calendario */
+  color: #212529; /* Color del texto por defecto */
+  border-radius: 10px; /* Esquinas redondeadas */
+  padding: 10px; /* Espaciado interno */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra ligera */
+}
+
+.igx-calendar__header {
+  background-color: #2d231b; /* Fondo del encabezado */
+  color: #ffffff; /* Color del texto del encabezado */
+  border-radius: 6px 6px 0 0; /* Esquinas redondeadas superiores */
+  padding: 10px;
+  text-align: center;
+}
+
+.igx-calendar__date--selected,
+.igx-calendar__date[aria-selected="true"] {
+  background-color: #93c2d0 !important; /* Fondo verde */
+  color: #ffffff !important; /* Color del texto */
+  border-radius: 50%; /* Forma circular */
+  box-shadow: none !important; /* Sin sombra */
+}
+
+.igx-calendar__date--today {
+  border: 2px solid #ff073a; /* Borde especial para el día actual */
+  color: #ff073a; /* Color del texto del día actual */
+  font-weight: bold;
+  border-radius: 50%; /* Forma circular */
+}
+
+.igx-calendar__date {
+  color: #6c757d; /* Color de las fechas por defecto */
+  &:hover {
+    background-color: #e9ecef; /* Fondo al pasar el cursor */
+    color: #212529; /* Color del texto al pasar el cursor */
+  }
+}
+
+.igx-calendar__week {
+  background-color: #f8f9fa; /* Fondo de los nombres de los días */
+  color: #6c757d; /* Color del texto de los nombres de los días */
+  font-weight: bold;
+}
+
+/* Estilos adicionales */
+.bg-primary {
+  background-color: #007bff !important;
+}
+
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.text-white {
+  color: #ffffff !important;
+}

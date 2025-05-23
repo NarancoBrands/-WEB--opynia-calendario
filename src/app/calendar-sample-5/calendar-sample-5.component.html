@@ -1,0 +1,143 @@
+<div class="container-fluid">
+    <div class="row">
+        <!-- Columna izquierda que alternará entre Notas y Estadísticas -->
+        <div class="col-md-5 d-flex flex-column justify-content-start align-items-start border-end notes-column" style="margin-top: 10vh;">
+            <div *ngIf="currentSection === 'notes'">
+                <!-- Contenedor de las notas -->
+                <div class="info-box" *ngFor="let item of infoBoxes; let i = index">
+                    <div class="date-time-badge" style="background-color: #2d231b; margin-bottom: 2px;">
+                        <h5 style="color: #ffffff; margin-bottom: 0px;">{{ item.fecha }}</h5>
+                    </div>
+                    <div class="info-box-content">
+                        <p><strong>Nombre:</strong> {{ item.nombre }}</p>
+                        <p><strong>Número:</strong> {{ item.telefono }}</p>
+                        <p><strong>Email:</strong> {{ item.email ? item.email : 'No especificado' }}</p>
+                        <p>{{ item.mensaje }}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Rectángulos de estadísticas -->
+            <div *ngIf="currentSection === 'stats'" class="col-md-7 d-flex flex-column justify-content-start align-items-start stats-section">
+                <!-- Primer rectángulo: Total de Reseñas -->
+                <div class="estadisticasRectangulos col-md-9 mb-3 d-flex flex-row">
+                    <!-- Primera columna: Gráfica de tipo pie -->
+                    <div class="col-md-4 d-flex justify-content-center align-items-center">
+                        <canvas id="pieChart" width="400" height="400"></canvas>
+                    </div>
+
+                    <!-- Segunda columna: Total Reservas -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fw-bold">Total Reservas</p>
+                    </div>
+
+                    <!-- Tercera columna: Total de Reseñas -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fs-4">{{ totalResenas }}</p>
+                    </div>
+                </div>
+
+                <!-- Segundo rectángulo: Reservas Convertidas -->
+                <div class="estadisticasRectangulos col-md-9 mb-3 d-flex flex-row">
+                    <!-- Primera columna: Imagen (vacía de momento) -->
+                    <div class="col-md-4 d-flex justify-content-center align-items-center">
+                        <p class="text-center">(Espacio para imagen)</p>
+                    </div>
+                    <!-- Segunda columna: Reservas Convertidas -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fw-bold">Reservas Convertidas</p>
+                    </div>
+                    <!-- Tercera columna: Número de Convertidas -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fs-4">{{ resenasConvertidas }}</p>
+                    </div>
+                </div>
+
+                <!-- Tercer rectángulo: Reservas Sin Convertir -->
+                <div class="estadisticasRectangulos col-md-9 mb-3 d-flex flex-row">
+                    <!-- Primera columna: Imagen (vacía de momento) -->
+                    <div class="col-md-4 d-flex justify-content-center align-items-center">
+                        <p class="text-center">(Espacio para imagen)</p>
+                    </div>
+                    <!-- Segunda columna: Reservas Sin Convertir -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fw-bold">Reservas Sin Convertir</p>
+                    </div>
+                    <!-- Tercera columna: Número de Sin Convertir -->
+                    <div class="col-md-4 d-flex flex-column justify-content-center align-items-center">
+                        <p class="text-center fs-4">{{ resenasSinConvertir }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha con el calendario -->
+        <div class="col-md-7 d-flex flex-column justify-content-start align-items-start calendar-column">
+            <div class="col-md-7 d-flex flex-row align-items-center gap-2">
+                <button (click)="toggleSection()" class="btn btn-primary">
+          {{ currentSection === 'notes' ? 'Estadísticas' : 'Reseñas' }}
+        </button>
+                <button (click)="openNoteModal()" class="btn btn-primary" *ngIf="currentSection === 'notes'">
+          Añadir Reseña
+        </button>
+            </div>
+            <article class="calendar-wrapper" style="height: 60vh;">
+                <igx-calendar [(value)]="selectedDate" (selected)="onDateSelected($event)" style="height: 70vh; margin-top: 15vh;"></igx-calendar>
+            </article>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor para alertas -->
+<div id="alert-container" class="alert-container" *ngIf="alertMessage">
+    <div class="alert alert-{{ alertType }}">
+        {{ alertMessage }}
+    </div>
+</div>
+
+<!-- Modal para añadir nota -->
+<div class="modal fade" id="noteModal" tabindex="-1" aria-labelledby="noteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="noteModalLabel">Añadir Reseña</h5>
+                <button type="button" class="btn-close btn-custom-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+            </div>
+            <div class="modal-body">
+                <!-- Campo Nombre -->
+                <div class="mb-3">
+                    <label for="noteName" class="form-label">*Nombre</label>
+                    <input [(ngModel)]="noteName" type="text" id="noteName" class="form-control" placeholder="Ingresa el nombre" required>
+                </div>
+
+                <!-- Campos Número y Hora en la misma fila -->
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label for="noteNumber" class="form-label">*Número</label>
+                        <input [(ngModel)]="noteNumber" type="number" id="noteNumber" class="form-control" placeholder="Ingresa el número" required>
+                    </div>
+                    <div class="col-md-7 mb-4">
+                        <label for="noteTime" class="form-label">*Hora</label>
+                        <input [(ngModel)]="noteTime" type="time" id="noteTime" class="form-control" placeholder="Selecciona la hora" required>
+                    </div>
+                </div>
+
+                <!-- Campo Email (Opcional) -->
+                <div class="mb-3">
+                    <label for="noteEmail" class="form-label">Email (Opcional)</label>
+                    <input [(ngModel)]="noteEmail" type="email" id="noteEmail" class="form-control" placeholder="Ingresa el email">
+                </div>
+
+                <!-- Campo Nota (Opcional) -->
+                <div class="mb-3">
+                    <label for="noteText" class="form-label">Nota (Opcional)</label>
+                    <textarea [(ngModel)]="noteText" id="noteText" class="form-control" rows="5" placeholder="Escribe tu nota..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="saveNote()">Guardar Nota</button>
+            </div>
+        </div>
+    </div>
+</div>
