@@ -1,10 +1,11 @@
 <div class="container-fluid">
     <div class="row">
         <!-- Columna izquierda que alternará entre Notas y Estadísticas -->
-        <div class="col-md-5 d-flex flex-column justify-content-start align-items-start border-end notes-column" style="margin-top: 10vh;">
+        <div class="col-md-5 d-flex flex-column justify-content-start align-items-start border-end notes-column"
+            style="margin-top: 10vh;">
             <div *ngIf="currentSection === 'notes'">
                 <!-- Contenedor de las notas -->
-                <div class="info-box" *ngFor="let item of infoBoxes; let i = index">
+                <div class="info-box" *ngFor="let item of infoBoxes?.reverse(); let i = index">
                     <div class="date-time-badge" style="background-color: #2d231b; margin-bottom: 2px;">
                         <h5 style="color: #ffffff; margin-bottom: 0px;">{{ item.fecha }}</h5>
                     </div>
@@ -12,12 +13,15 @@
                         <p><strong>Nombre:</strong> {{ item.nombre }}</p>
                         <p><strong>Número:</strong> {{ item.telefono }}</p>
                         <p><strong>Email:</strong> {{ item.email ? item.email : 'No especificado' }}</p>
+                        <p><strong>Reserva el:</strong> {{ item.programado_en_formateado }}</p>
                         <p>{{ item.mensaje }}</p>
                     </div>
                 </div>
             </div>
+        
             <!-- Rectángulos de estadísticas -->
-            <div *ngIf="currentSection === 'stats'" class="col-md-7 d-flex flex-column justify-content-start align-items-start stats-section">
+            <div *ngIf="currentSection === 'stats'"
+                class="col-md-7 d-flex flex-column justify-content-start align-items-start stats-section">
                 <!-- Primer rectángulo: Total de Reseñas -->
                 <div class="estadisticasRectangulos col-md-9 mb-3 d-flex flex-row">
                     <!-- Primera columna: Gráfica de tipo pie -->
@@ -74,14 +78,15 @@
         <div class="col-md-7 d-flex flex-column justify-content-start align-items-start calendar-column">
             <div class="col-md-7 d-flex flex-row align-items-center gap-2">
                 <button (click)="toggleSection()" class="btn btn-primary">
-          {{ currentSection === 'notes' ? 'Estadísticas' : 'Reseñas' }}
-        </button>
+                    {{ currentSection === 'notes' ? 'Estadísticas' : 'Reseñas' }}
+                </button>
                 <button (click)="openNoteModal()" class="btn btn-primary" *ngIf="currentSection === 'notes'">
-          Añadir Reseña
-        </button>
+                    Añadir Reseña
+                </button>
             </div>
             <article class="calendar-wrapper" style="height: 60vh;">
-                <igx-calendar [(value)]="selectedDate" (selected)="onDateSelected($event)" style="height: 70vh; margin-top: 15vh;"></igx-calendar>
+                <igx-calendar [(value)]="selectedDate" (selected)="onDateSelected($event)"
+                    style="height: 70vh; margin-top: 15vh;"></igx-calendar>
             </article>
         </div>
     </div>
@@ -101,37 +106,49 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="noteModalLabel">Añadir Reseña</h5>
                 <button type="button" class="btn-close btn-custom-close" data-bs-dismiss="modal" aria-label="Close">
-        </button>
+                </button>
             </div>
             <div class="modal-body">
                 <!-- Campo Nombre -->
                 <div class="mb-3">
                     <label for="noteName" class="form-label">*Nombre</label>
-                    <input [(ngModel)]="noteName" type="text" id="noteName" class="form-control" placeholder="Ingresa el nombre" required>
+                    <input [(ngModel)]="noteName" type="text" id="noteName" class="form-control"
+                        placeholder="Ingresa el nombre" required>
                 </div>
 
                 <!-- Campos Número y Hora en la misma fila -->
                 <div class="row">
                     <div class="col-md-5 mb-3">
                         <label for="noteNumber" class="form-label">*Número</label>
-                        <input [(ngModel)]="noteNumber" type="number" id="noteNumber" class="form-control" placeholder="Ingresa el número" required>
+                        <div class="input-group">
+                            <span class="input-group-text">+34</span>
+                            <input [(ngModel)]="noteNumber" (ngModelChange)="noteNumber = cleanPhoneNumber($event)"
+                                type="text" id="noteNumber" class="form-control" placeholder="658458321" maxlength="9"
+                                required>
+                        </div>
+                        <div *ngIf="noteNumber && !validatePhoneNumber(noteNumber)" class="text-danger small mt-1">
+                            Debe tener exactamente 9 dígitos
+                        </div>
                     </div>
                     <div class="col-md-7 mb-4">
-                        <label for="noteTime" class="form-label">*Hora</label>
-                        <input [(ngModel)]="noteTime" type="time" id="noteTime" class="form-control" placeholder="Selecciona la hora" required>
+                        <label for="noteTime" class="form-label">Hora de la reserva </label>
+                        <input [(ngModel)]="noteTime" type="time" id="noteTime" class="form-control"
+                            placeholder="Selecciona la hora" required>
                     </div>
                 </div>
 
                 <!-- Campo Email (Opcional) -->
                 <div class="mb-3">
                     <label for="noteEmail" class="form-label">Email (Opcional)</label>
-                    <input [(ngModel)]="noteEmail" type="email" id="noteEmail" class="form-control" placeholder="Ingresa el email">
+                    <input [(ngModel)]="noteEmail" type="email" id="noteEmail" class="form-control"
+                        placeholder="Ingresa el email">
                 </div>
 
                 <!-- Campo Nota (Opcional) -->
                 <div class="mb-3">
                     <label for="noteText" class="form-label">Nota (Opcional)</label>
-                    <textarea [(ngModel)]="noteText" id="noteText" class="form-control" rows="5" placeholder="Escribe tu nota..."></textarea>
+                    <textarea [(ngModel)]="noteText" id="noteText" class="form-control" rows="5"
+                        placeholder="Escribe tu nota..."></textarea>
                 </div>
             </div>
 

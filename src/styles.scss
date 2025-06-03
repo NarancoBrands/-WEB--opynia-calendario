@@ -3,7 +3,7 @@
 @use 'app-layout';
 @import 'bootstrap/scss/bootstrap';
 @import "~bootstrap/dist/css/bootstrap.min.css";
-
+@import '~@fortawesome/fontawesome-free/css/all.css';
 /* Configuración básica */
 html,
 body {
@@ -21,9 +21,16 @@ body {
   $schema: $schema
 );
 
+// :root {
+//   @include palette($palette);
+//}
 :root {
-  @include palette($palette);
+  --primary: #66fcf1;
+  --white: #ffffff;
+  --dark-gray: #161618;
+  --black: #000000;
 }
+
 
 .light-theme {
   @include light-theme($palette);

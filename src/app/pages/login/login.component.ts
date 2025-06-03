@@ -24,6 +24,8 @@ export class LoginComponent implements OnInit {
 
   isLoggedin?: boolean;
 
+  showPassword: boolean = false;
+  
   constructor(
     private formBuilder: FormBuilder,
     private socialAuthService: SocialAuthService, 
@@ -78,7 +80,9 @@ export class LoginComponent implements OnInit {
   calendario(){
     this.router.navigate(['/calendar']);
   }
-
+logo(){
+  return "http://127.0.0.1:8000/storage/logo/logo_sin_fondo.png";
+}
 }
 
 

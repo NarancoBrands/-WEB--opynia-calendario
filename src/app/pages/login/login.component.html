@@ -17,22 +17,77 @@
 
 </div> -->
 
-<div class="card">
-    <p id="title">Inicio de sesión</p>
-    <form [formGroup]="loginForm">
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-container">
+        <img [src]="logo()" ></div>
+      <p>Inicia sesión para continuar</p>
+    </div>
+    
+    <div class="login-body">
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
         <div class="form-group">
-            <label for="email">Email </label>
-            <input type="email" id="email" class="form-control" formControlName="email" />
+          <label for="email">Email</label>
+          <div class="input-container">
+            <i class="fas fa-envelope input-icon"></i> 
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email" 
+              placeholder="tu@email.com"
+              required />
+          </div>
         </div>
+        
         <div class="form-group">
-            <label for="email">Contraseña </label>
-            <input type="email" id="email" class="form-control" formControlName="password" />
+          <label for="password">Contraseña</label>
+          <div class="input-container">
+            <i class="fas fa-lock input-icon"></i>
+            <input 
+              [type]="showPassword ? 'text' : 'password'" 
+              id="password" 
+              formControlName="password" 
+              placeholder="••••••••"
+              required />
+            <button 
+              type="button" 
+              class="toggle-password"
+              (click)="showPassword = !showPassword">
+              <i class="fas" [class.fa-eye-slash]="showPassword" [class.fa-eye]="!showPassword"></i>
+              </button>
+          </div>
         </div>
-        <br/>
-        <button type="submit" id="schedule-button" (click)="login()">Login</button>
-    </form>
 
-
+<!--         
+        <div class="remember-forgot">
+          <div class="remember">
+            <input type="checkbox" id="remember-me" />
+            <label for="remember-me">Recordarme</label>
+          </div>
+          <a href="/forgot-password" class="forgot-link">¿Olvidaste tu contraseña?</a>
+        </div> -->
+        
+        <button type="submit" class="login-button">
+          Iniciar Sesión
+        </button>
+      </form>
+<!--       
+      <div class="divider">
+        <span>O CONTINÚA CON</span>
+      </div> -->
+      
+      <!-- <button type="button" class="google-button" (click)="loginWithGoogle()">
+        <svg class="google-icon" viewBox="0 0 24 24">
+        </svg>
+        Continuar con Google
+      </button> -->
+      
+      <!-- <div class="register-link">
+        ¿No tienes una cuenta? <a href="/register">Regístrate</a>
+      </div> -->
+    </div>
+  </div>
 </div>
 
 
