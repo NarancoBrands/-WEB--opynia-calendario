@@ -21,9 +21,10 @@ import {
   SocialAuthServiceConfig,
 } from '@abacritt/angularx-social-login';
 import { GoogleLoginProvider } from '@abacritt/angularx-social-login';
+import { AppHeaderComponent } from "./componets/app-header/app-header.component";
 
 const routes: Routes = [
-  { path: 'calendar', component: CalendarSample5Component },
+  { path: 'calendar',component: CalendarSample5Component },
   { path: 'login', component: LoginComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' }, // o la ruta de login si lo prefieres
   { path: '**', redirectTo: '/calendar' }
@@ -37,7 +38,8 @@ registerLocaleData(localeEs, 'es');
   declarations: [
     AppComponent,
     CalendarSample5Component,
-    LoginComponent
+    LoginComponent,
+    AppHeaderComponent
   ],
   imports: [
     BrowserModule,
@@ -47,7 +49,9 @@ registerLocaleData(localeEs, 'es');
     RouterModule.forRoot(routes),
     IgxCalendarModule,
     IgxDialogModule,
-    HttpClientModule
+    HttpClientModule,
+    
+
   ],
   providers: [
     {provide: 'SocialAuthServiceConfig',
