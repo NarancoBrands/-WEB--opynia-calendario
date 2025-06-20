@@ -6,14 +6,14 @@ $schema: $light-material-schema;
 
 $default-palette: $palette;
 
-$green-palette: palette(
-    $primary: #09f,
-    $secondary: #72da67,
-    $surface: #333,
-    $info: #1377d5,
-    $success: #4eb862,
-    $warn: #fbb13c,
-    $error: #ff134a,
-);
+// $green-palette: palette(
+//     $primary: #09f,
+//     $secondary: #72da67,
+//     $surface: #333,
+//     $info: #1377d5,
+//     $success: #4eb862,
+//     $warn: #fbb13c,
+//     $error: #ff134a,
+// );
 
 $gray-btn-color: color($green-palette, 'gray', 800);

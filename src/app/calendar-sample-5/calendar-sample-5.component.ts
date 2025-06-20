@@ -1,304 +1,468 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
-import * as bootstrap from 'bootstrap';
-import { Chart, registerables } from 'chart.js';
-import { AuthService } from '../services/auth.service';
-
-// Se asumen que tanto gapi como google están disponibles globalmente
-declare var gapi: any;
-declare var google: any;
-
+import { Component, OnInit, AfterViewInit, ViewChild } from "@angular/core";
+import * as bootstrap from "bootstrap";
+import { Chart, registerables } from "chart.js";
+import { AuthService } from "../services/auth.service";
+import { ResenaService } from "../services/resena.service";
+import { ActivatedRoute, Router } from "@angular/router";
+import { GoogleCalendarService } from "../services/google-calendar.service";
+import { Subscription } from "rxjs";
+import { GoogleCalendar } from "../interfaces/google-calendar";
 @Component({
-  selector: 'app-calendar',
-  templateUrl: './calendar-sample-5.component.html',
-  styleUrls: ['./calendar-sample-5.component.scss'],
+  selector: "app-calendar",
+  templateUrl: "./calendar-sample-5.component.html",
+  styleUrls: ["./calendar-sample-5.component.scss"],
 })
 export class CalendarSample5Component implements OnInit, AfterViewInit {
-  // Datos de notas y estadísticas
-  public infoBoxes = [
-    // { title: '22 Enero', content: 'Reunión presencial.', name: 'Juan Pérez', email: 'juan@example.com', number: 123456789 },
-  ];
+  public infoBoxes: any[] = [];
   public selectedDate: Date = new Date();
-  public noteText: string = '';
-  public noteNumber: number = 0;
-  public noteEmail?: string = '';
-  public noteName: string = '';
-  public noteTime: string = '';
-  public alertMessage: string = '';
-  public alertType: string = 'success';
-  public currentSection: 'notes' | 'stats' = 'notes';
-  public totalResenas = 140;
-  public resenasConvertidas = 103;
-  public resenasSinConvertir = 37;
+  public noteText: string = "";
+  public noteNumber: string = "";
+  public noteEmail?: string = "";
+  public noteName: string = "";
+  public noteTime: string = "";
+  public alertMessage: string = "";
+  public alertType: string = "success";
+  public currentSection: "notes" | "stats" = "notes";
+  public totalResenas = 0;
+  public resenasConvertidas = 0;
+  public resenasSinConvertir = 0;
   private pieChart: any;
+  public isLoading: boolean = false;
+  public currentCalendarDate: Date = new Date();
+  public calendarDays: any[] = [];
+  public weekDays: string[] = [ "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb","Dom"];
+  public months: string[] = [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ];
+  public isDeleting: boolean = false;
+  // Modales y estado
+  public logoutModal: any;
+  private deleteModal: any;
+  private currentUser: any;
+  private reseñaIdToDelete: number | null = null;
 
-  // Variables para autenticación con GIS
-  public accessToken: string | null = null;
-  private tokenClient: any;
+  // ¡Nuestra única propiedad para saber el estado de la conexión con Google!
+  public isGoogleConnected: boolean = false;
 
   constructor(
-    private api: AuthService
-    ) {}
+    private authService: AuthService,
+    private resenaService: ResenaService,
+    private googleCalendarService: GoogleCalendarService,
+    private activatedRoute: ActivatedRoute,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    // Registrar Chart.js
     Chart.register(...registerables);
+    this.generateCalendar();
 
-    // Cargar el cliente de gapi y luego inicializarlo
-    if (typeof gapi === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        this.loadGoogleClient();
-      };
-      document.head.appendChild(script);
+    // Comprobamos si existe nuestra bandera en el localStorage
+    if (localStorage.getItem("googleAuthInProgress") === "true") {
+      localStorage.removeItem("googleAuthInProgress");
+      this.refreshUserDataAndUpdateUrl();
     } else {
-      this.loadGoogleClient();
+      this.loadUserAndCheckStatus();
     }
-
-    this.getResenas()
   }
 
   ngAfterViewInit(): void {
-    // Inicializar el gráfico si es necesario, por ejemplo, cuando la sección de estadísticas es seleccionada.
+    this.deleteModal = new bootstrap.Modal(
+      document.getElementById("deleteModal") as HTMLElement
+    );
+    this.logoutModal = new bootstrap.Modal(
+      document.getElementById("logoutModal") as HTMLElement
+    );
   }
 
-  getResenas() {
-    this.api.getResenasByIdComercio(JSON.parse(localStorage.getItem('opyniaUser') || '{"id": 0}').id).subscribe((res:any) => {
-      console.log(res);
-      this.infoBoxes=res.data;
-    })
+  loadUserAndCheckStatus(): void {
+    this.currentUser = JSON.parse(localStorage.getItem("opyniaUser") || "{}");
+    this.checkGoogleConnectionStatus();
+    this.getResenas();
   }
 
-  loadGoogleClient(): void {
-    gapi.load('client', () => {
-      gapi.client.init({
-        apiKey: 'AIzaSyAHAWbUeyc-pHCSUG20dyfkKos2sMH6a1w',
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest']
-      }).then(() => {
-        console.log('GAPI client initialized.');
+  refreshUserDataAndUpdateUrl(): void {
+    this.googleCalendarService.getAuthenticatedUser().subscribe((user) => {
+      localStorage.setItem("opyniaUser", JSON.stringify(user));
+      this.currentUser = user;
 
-        // Verificar si ya tenemos un token guardado en el almacenamiento local (localStorage)
-        const savedToken = localStorage.getItem('googleCredential');
-        if (savedToken) {
-          this.accessToken = savedToken;
-          gapi.client.setToken({ access_token: this.accessToken });
-          console.log('Token recuperado desde localStorage:', this.accessToken);
-        }
+      this.checkGoogleConnectionStatus();
+      this.getResenas();
 
-        // Inicializar el token client con GIS (nuevo método)
-        this.tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: '663931692338-a42oipfg8snb89o0tllrs822khumtulb.apps.googleusercontent.com',
-          scope: 'https://www.googleapis.com/auth/calendar',
-          callback: (response: any) => {
-            if (response.error) {
-              console.error('Error obteniendo token:', response);
-            } else {
-              this.accessToken = response.access_token;
-              console.log('Access token acquired via GIS:', this.accessToken);
-              // Asignar el token a gapi.client para usarlo en llamadas posteriores
-              gapi.client.setToken({ access_token: this.accessToken });
-              // Guardar el token en localStorage si lo necesitas persistente
-              localStorage.setItem('googleCredential', this.accessToken);
-            }
-          }
-        });
-      }).catch((error: any) => {
-        console.error('Error initializing gapi client:', error);
+      this.router.navigate([], {
+        relativeTo: this.activatedRoute,
+        queryParams: { status: null },
+        queryParamsHandling: "merge",
+        replaceUrl: true,
       });
     });
   }
 
-  // Función para crear un evento en Google Calendar usando gapi.client.calendar.events.insert
-  createGoogleCalendarEvent(note: any): void {
-    if (!this.accessToken) {
-      console.error('No se encontró token de acceso. El usuario debe iniciar sesión en Google.');
-      return;
+  checkGoogleConnectionStatus(): void {
+    if (this.currentUser && this.currentUser.google_connected) {
+      this.isGoogleConnected = true;
+      this.startWatching();
+    } else {
+      this.isGoogleConnected = false;
     }
+  }
 
-    const event = {
-      summary: note.title,
-      description: note.content,
-      start: {
-        dateTime: this.combineDateAndTime(this.selectedDate, this.noteTime),
-        timeZone: 'UTC'
+  connectToGoogle(): void {
+    localStorage.setItem("googleAuthInProgress", "true");
+
+    this.showAlert("Redirigiendo a Google para la conexión...", "info");
+
+    this.googleCalendarService.getGoogleAuthUrl().subscribe({
+      next: (response) => {
+        if (response.authUrl) {
+          window.location.href = response.authUrl;
+        }
       },
-      end: {
-        dateTime: this.addThirtyMinutes(this.combineDateAndTime(this.selectedDate, this.noteTime)),
-        timeZone: 'UTC'
-      }
-    };
-
-    gapi.client.calendar.events.insert({
-      calendarId: 'primary',
-      resource: event
-    }).then((response: any) => {
-      if (response && !response.error) {
-        console.log('Evento creado en Google Calendar:', response.result.htmlLink);
-      } else {
-        console.error('Error creando el evento en Google Calendar:', response.error);
-      }
-    }).catch((error: any) => {
-      console.error('Error en la llamada a la API de Google Calendar:', error);
+      error: (err) => {
+        console.error("Error al obtener la URL de Google", err);
+        this.showAlert("No se pudo iniciar la conexión con Google.", "danger");
+        // Si hay un error, borramos la bandera que pusimos
+        localStorage.removeItem("googleAuthInProgress");
+      },
     });
   }
 
-  // Combina la fecha y la hora para obtener un formato adecuado para Google Calendar
-  combineDateAndTime(date: Date, time: string): string {
-    if (!time || !date) {
-      console.error('Fecha o hora no válidas', date, time);
-      return '';
-    }
-
-    const [hours, minutes] = time.split(':');
-    const newDate = new Date(date);
-    newDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0); // Asegúrate de configurar la hora y minutos correctamente
-
-    if (isNaN(newDate.getTime())) {
-      console.error('Fecha inválida:', newDate);
-      return '';
-    }
-
-    return newDate.toISOString();
+  startWatching(): void {
+    console.log("Intentando activar la sincronización automática...");
+    this.googleCalendarService.startWatchingCalendar().subscribe({
+      next: (response) => {
+        console.log(response.message || "Sincronización ya activa o iniciada.");
+      },
+      error: (err) =>
+        console.error(
+          "Error al intentar activar la vigilancia automática",
+          err
+        ),
+    });
   }
 
-  // Suma 30 minutos a la hora de inicio para obtener la hora de finalización
-  addThirtyMinutes(dateISOString: string): string {
-    const date = new Date(dateISOString);
-    date.setMinutes(date.getMinutes() + 30); // Añadir 30 minutos
-    return date.toISOString();
+  disconnectFromGoogle(): void {
+    if (
+      !confirm(
+        "¿Estás seguro de que quieres desconectar tu cuenta de Google? Esto detendrá la sincronización y borrará los permisos."
+      )
+    ) {
+      return;
+    }
+
+    this.showAlert("Desconectando de Google...", "info");
+    this.googleCalendarService.stopWatchingAndDisconnect().subscribe({
+      next: (response) => {
+        this.showAlert(response.message, "success");
+        this.refreshUserDataAndUpdateUrl(); // Refrescamos el estado para actualizar la UI
+      },
+      error: (err) => {
+        this.showAlert("No se pudo desconectar la cuenta.", "danger");
+      },
+    });
   }
 
-  // Guarda la nota y crea un evento en Google Calendar
+  getResenas(): void {
+    if (!this.currentUser?.id) {
+      return;
+    }
+
+    this.isLoading = true;
+    this.resenaService.getResenasByIdComercio(this.currentUser.id).subscribe({
+      next: (res: any) => {
+        this.infoBoxes = res.data || [];
+        this.calculateStats();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error("Error obteniendo reseñas:", error);
+        this.showAlert("Error al cargar las reseñas", "danger");
+        this.isLoading = false;
+      },
+    });
+  }
+
+  /**
+   * Guarda una reseña en nuestra base de datos y, si corresponde,
+   * pide al backend que cree el evento en Google Calendar.
+   */
   saveNote(): void {
-    if (this.noteName.trim() && this.noteNumber && this.noteTime) {
+    if (!this.noteName.trim() || !this.noteNumber.trim() || !this.noteTime) {
+      this.showAlert("Por favor, completa los campos obligatorios.", "danger");
+      return;
+    }
+    if (!this.validatePhoneNumber(this.cleanPhoneNumber(this.noteNumber))) {
+      this.showAlert(
+        "El formato del número es incorrecto. Debe tener 9 dígitos.",
+        "danger"
+      );
+      return;
+    }
 
-      const data = {
-        nombre: this.noteName,
-        telefono: this.noteNumber,
-        mensaje: this.noteText || 'Sin contenido',
-        comercioId: JSON.parse(localStorage.getItem('opyniaUser') || '{"id": 0}').id
-      };
+    this.isLoading = true;
+    const resenaData = {
+      nombre: this.noteName.trim(),
+      telefono: `34${this.cleanPhoneNumber(this.noteNumber)}`,
+      mensaje: this.noteText.trim() || "Sin mensaje adicional",
+      comercioId: this.currentUser.id,
+      programado_en: this.combineDateAndTime(this.selectedDate, this.noteTime),
+      email: this.noteEmail ? this.noteEmail.trim() : null,
+    };
 
-      this.api.saveResena(data).subscribe(res => {
-  
-        // const newNote = {
-        //   title: `${this.formatDate(this.selectedDate)} - ${this.noteTime}`,
-        //   number: this.noteNumber,
-        //   name: this.noteName,
-        //   content: this.noteText || 'Sin contenido',
-        //   email: this.noteEmail || 'No especificado',
-        // };
-        const newNote = {
-          fecha: `${this.formatDate(this.selectedDate)} - ${this.noteTime}`,
-          telefono: this.noteNumber,
-          nombre: this.noteName,
-          mensaje: this.noteText || 'Sin contenido',
-          email: this.noteEmail || 'No especificado',
-        };
-        this.infoBoxes.push(newNote);
-        console.log(this.infoBoxes);
-  
-  
+    this.resenaService.saveResena(resenaData).subscribe({
+      next: (response: any) => {
+        // Añadimos la nueva reseña a la lista local
+        this.infoBoxes.push(response.data);
+        this.calculateStats();
         this.clearForm();
-        this.showAlert('Nota creada con éxito', 'success');
+        this.closeModal();
+        this.showAlert("Reseña creada exitosamente", "success");
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error("Error guardando reseña:", error);
+        this.showAlert("Error al guardar la reseña", "danger");
+        this.isLoading = false;
+      },
+    });
+  }
 
-        const modal = bootstrap.Modal.getInstance(document.getElementById('noteModal') as HTMLElement);
-        modal?.hide();
-  
-        // Crear el evento en Google Calendar
-        // this.createGoogleCalendarEvent(newNote);
-  
-      })
-      
+  async confirmDeleteResena(): Promise<void> {
+    if (!this.reseñaIdToDelete) return;
+    this.isDeleting = true;
+    const reseñaToDelete = this.infoBoxes.find(
+      (item) => item.id === this.reseñaIdToDelete
+    );
 
-    } else {
-      this.showAlert('Error: Por favor, completa los campos obligatorios.', 'danger');
+    // Procedemos a borrar la reseña de nuestra base de datos.
+    this.resenaService.deleteResena(this.reseñaIdToDelete).subscribe({
+      next: (response) => {
+        const msg = (response as { message: string }).message;
+        this.infoBoxes = this.infoBoxes.filter(
+          (item) => item.id !== this.reseñaIdToDelete
+        );
+        this.calculateStats();
+        this.deleteModal.hide();
+        this.showAlert(msg, "success");
+        this.isLoading = false;
+        this.reseñaIdToDelete = null;
+      },
+      error: (error) => {
+        this.showAlert("Error al eliminar la reseña", "danger");
+        this.isLoading = false;
+      },
+      complete: () => {
+        this.isDeleting = false; // <-- Establece en false al finalizar (éxito o error)
+      },
+    });
+  }
+
+  // --- MÉTODOS AUXILIARES Y DE UI (SIN CAMBIOS) ---
+
+  openNoteModal(): void {
+    const modal = new bootstrap.Modal(
+      document.getElementById("noteModal") as HTMLElement
+    );
+    modal.show();
+  }
+
+  generateCalendar(): void {
+    const year = this.currentCalendarDate.getFullYear();
+    const month = this.currentCalendarDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(firstDay);
+    const dayOfWeek = firstDay.getDay(); 
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startDate.setDate(startDate.getDate() - offset);
+    this.calendarDays = [];
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      this.calendarDays.push({
+        day: date.getDate(),
+        date: new Date(date),
+        otherMonth: date.getMonth() !== month,
+        isToday: this.isSameDate(date, new Date()),
+        isSelected: this.isSameDate(date, this.selectedDate),
+      });
     }
   }
 
-  // Función para mostrar alertas
+  selectDate(day: any): void {
+    if (day.otherMonth) return;
+    this.selectedDate = new Date(day.date);
+    this.generateCalendar();
+  }
+
+  handleClick(day: any) {
+    this.selectDate(day);
+    this.openNoteModal();
+  }
+
+  previousMonth(): void {
+    this.currentCalendarDate.setMonth(this.currentCalendarDate.getMonth() - 1);
+    this.generateCalendar();
+  }
+
+  nextMonth(): void {
+    this.currentCalendarDate.setMonth(this.currentCalendarDate.getMonth() + 1);
+    this.generateCalendar();
+  }
+
+  getMonthYear(): string {
+    const month = this.months[this.currentCalendarDate.getMonth()];
+    const year = this.currentCalendarDate.getFullYear();
+    return `${month} ${year}`;
+  }
+
+  private isSameDate(date1: Date, date2: Date): boolean {
+    return (
+      date1.getDate() === date2.getDate() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getFullYear() === date2.getFullYear()
+    );
+  }
+
+  calculateStats(): void {
+    this.totalResenas = this.infoBoxes.length;
+    this.resenasConvertidas = this.infoBoxes.filter(
+      (resena) => resena.enviado
+    ).length;
+    this.resenasSinConvertir = this.totalResenas - this.resenasConvertidas;
+    if (this.currentSection === "stats") {
+      this.createPieChart();
+    }
+  }
+
+  deleteResena(id: number): void {
+    this.reseñaIdToDelete = id;
+    this.deleteModal.show();
+  }
+
+  validatePhoneNumber(phone: string): boolean {
+    const phoneRegex = /^\d{9}$/;
+    return phoneRegex.test(phone);
+  }
+
+  cleanPhoneNumber(phone: string): string {
+    return phone.replace(/\D/g, "").slice(0, 9);
+  }
+
+   combineDateAndTime(date: Date, time: string): string {
+    if (!time || !date) return "";
+    const [hours, minutes] = time.split(":");
+
+    const localDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      parseInt(hours, 10),
+      parseInt(minutes, 10)
+    );
+
+
+    const utcIsoString = localDate.toISOString();
+
+    return utcIsoString.slice(0, 19).replace('T', ' ');
+  }
+
   showAlert(message: string, type: string): void {
     this.alertMessage = message;
     this.alertType = type;
-    setTimeout(() => { this.alertMessage = ''; }, 3000);
+    setTimeout(() => {
+      this.alertMessage = "";
+    }, 5000);
   }
 
-  // Limpiar el formulario
   clearForm(): void {
-    this.noteText = '';
-    this.noteName = '';
-    this.noteEmail = '';
-    this.noteNumber = 0;
-    this.noteTime = '';
+    this.noteText = "";
+    this.noteName = "";
+    this.noteEmail = "";
+    this.noteNumber = "";
+    this.noteTime = "";
   }
 
-  // Formatear la fecha
-  formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'long', year: 'numeric' };
-    return date.toLocaleDateString('es-ES', options);
+  closeModal(): void {
+    const modalEl = document.getElementById("noteModal");
+    if (modalEl) {
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal?.hide();
+    }
   }
 
-  // Evento al seleccionar una fecha
-  onDateSelected(event: any): void {
-    this.selectedDate = new Date(event);
-  }
-
-  // Método toggle para cambiar entre secciones de notas y estadísticas
   toggleSection(): void {
     if (this.pieChart) {
       this.pieChart.destroy();
       this.pieChart = null;
     }
-    this.currentSection = this.currentSection === 'notes' ? 'stats' : 'notes';
-    if (this.currentSection === 'stats') {
+    this.currentSection = this.currentSection === "notes" ? "stats" : "notes";
+    if (this.currentSection === "stats") {
       setTimeout(() => {
         this.createPieChart();
       }, 10);
     }
   }
 
-  openNoteModal(): void {
-    const modal = new bootstrap.Modal(document.getElementById('noteModal') as HTMLElement);
-    modal.show();
-  }
-
-  // Crear gráfico circular de estadísticas
   createPieChart(): void {
-    const pieChartElement = <HTMLCanvasElement>document.getElementById('pieChart');
-    if (pieChartElement && !this.pieChart) {
-      const porcentajeConvertidas = (this.resenasConvertidas / this.totalResenas) * 100;
-      const porcentajeSinConvertir = (this.resenasSinConvertir / this.totalResenas) * 100;
-  
+    const pieChartElement = <HTMLCanvasElement>(
+      document.getElementById("pieChart")
+    );
+    if (pieChartElement) {
+      if (this.pieChart) this.pieChart.destroy();
+      const pConvertidas =
+        this.totalResenas > 0
+          ? (this.resenasConvertidas / this.totalResenas) * 100
+          : 0;
+      const pSinConvertir = 100 - pConvertidas;
       this.pieChart = new Chart(pieChartElement, {
-        type: 'pie',
+        type: "pie",
         data: {
-          labels: ['Reseñas Convertidas', 'Reseñas Sin Convertir'],
-          datasets: [{
-            label: 'Reseñas',
-            data: [porcentajeConvertidas, porcentajeSinConvertir],
-            backgroundColor: ['#4CAF50', '#FF5722'],
-            hoverOffset: 4
-          }]
+          labels: ["Reseñas Convertidas", "Reseñas Sin Convertir"],
+          datasets: [
+            {
+              data: [pConvertidas, pSinConvertir],
+              backgroundColor: ["#4CAF50", "#FF5722"],
+            },
+          ],
         },
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'top' },
+            legend: { position: "top" },
             tooltip: {
               callbacks: {
-                label: (context) => {
-                  const label = context.label || '';
-                  const value = context.raw || 0;
-                  return `${label}: ${(Number(value) || 0).toFixed(2)}%`;
-                }
-              }
-            }
-          }
-        }
+                label: (c) => `${c.label || ""}: ${Number(c.raw).toFixed(2)}%`,
+              },
+            },
+          },
+        },
       });
     }
   }
+
+  showLogoutModal(): void {
+    this.logoutModal.show();
+  }
+
+  confirmLogout(): void {
+    localStorage.removeItem("opyniaUser");
+    localStorage.removeItem("opyniaAuthToken"); // Limpiamos el token de nuestra API
+    localStorage.removeItem("googleCredential"); // Limpiamos el token viejo de google (si aún existe)
+    this.currentUser = null;
+    this.showAlert("Sesión cerrada exitosamente", "success");
+    this.logoutModal.hide();
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 1500);
+  }
 }
-
-
-

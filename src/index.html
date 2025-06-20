@@ -13,7 +13,7 @@ object-src 'none';
 frame-src 'self' https://accounts.google.com https://content.googleapis.com;
 upgrade-insecure-requests;
 "> -->
-<meta http-equiv="Content-Security-Policy" content="connect-src 'self' http://localhost:8001 https://www.googleapis.com https://content.googleapis.com https://accounts.google.com">
+<meta http-equiv="Content-Security-Policy" content="connect-src 'self' http://localhost:8001 http://127.0.0.1:8000 https://www.googleapis.com https://content.googleapis.com https://accounts.google.com" "https://api.opynia.es" >
 
 <title>Opynia</title>
 <base href="/">

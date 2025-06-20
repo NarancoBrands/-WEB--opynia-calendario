@@ -7,6 +7,9 @@ import {
   SocialUser,
 } from '@abacritt/angularx-social-login';
 import { AuthService } from 'src/app/services/auth.service';
+import { environment } from 'src/environments/environment';
+
+
 
 @Component({
 
@@ -24,6 +27,8 @@ export class LoginComponent implements OnInit {
 
   isLoggedin?: boolean;
 
+  showPassword: boolean = false;
+  
   constructor(
     private formBuilder: FormBuilder,
     private socialAuthService: SocialAuthService, 
@@ -78,7 +83,9 @@ export class LoginComponent implements OnInit {
   calendario(){
     this.router.navigate(['/calendar']);
   }
-
+logo(){
+  return `${environment.apiUrl}/storage/logo/logo_sin_fondo.png`;
+}
 }
 
 
