@@ -7,6 +7,9 @@ import {
   SocialUser,
 } from '@abacritt/angularx-social-login';
 import { AuthService } from 'src/app/services/auth.service';
+import { environment } from 'src/environments/environment';
+
+
 
 @Component({
 
@@ -81,7 +84,7 @@ export class LoginComponent implements OnInit {
     this.router.navigate(['/calendar']);
   }
 logo(){
-  return "http://127.0.0.1:8000/storage/logo/logo_sin_fondo.png";
+  return `${environment.apiUrl}/storage/logo/logo_sin_fondo.png`;
 }
 }
 

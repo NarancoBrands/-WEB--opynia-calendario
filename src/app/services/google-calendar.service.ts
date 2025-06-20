@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { GoogleCalendar } from '../interfaces/google-calendar';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
 declare var gapi: any;
 declare var google: any;
 @Injectable({
   providedIn: 'root'
 })
 export class GoogleCalendarService {
-private apiUrl = 'http://127.0.0.1:8000/api';
+private apiUrl = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) { }
 

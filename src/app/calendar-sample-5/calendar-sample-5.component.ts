@@ -30,7 +30,7 @@ export class CalendarSample5Component implements OnInit, AfterViewInit {
   public isLoading: boolean = false;
   public currentCalendarDate: Date = new Date();
   public calendarDays: any[] = [];
-  public weekDays: string[] = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  public weekDays: string[] = [ "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb","Dom"];
   public months: string[] = [
     "Enero",
     "Febrero",
@@ -281,7 +281,9 @@ export class CalendarSample5Component implements OnInit, AfterViewInit {
     const month = this.currentCalendarDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    const dayOfWeek = firstDay.getDay(); 
+    const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startDate.setDate(startDate.getDate() - offset);
     this.calendarDays = [];
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);

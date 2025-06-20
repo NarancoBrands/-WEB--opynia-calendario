@@ -9,7 +9,7 @@ import {
   IgxDialogModule
 } from "igniteui-angular";
 import { CalendarSample5Component } from "./calendar-sample-5/calendar-sample-5.component";
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 
 // Importar lo necesario para la internacionalización
 import { registerLocaleData } from '@angular/common';
@@ -22,6 +22,7 @@ import {
 } from '@abacritt/angularx-social-login';
 import { GoogleLoginProvider } from '@abacritt/angularx-social-login';
 import { AppHeaderComponent } from "./componets/app-header/app-header.component";
+import { AuthInterceptor } from "./auth.interceptor";
 
 const routes: Routes = [
   { path: 'calendar',component: CalendarSample5Component },
@@ -64,7 +65,11 @@ registerLocaleData(localeEs, 'es');
         },
       ],
     } as SocialAuthServiceConfig},
-    { provide: LOCALE_ID, useValue: 'es' }
+    { provide: LOCALE_ID, useValue: 'es' },{
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    }
 ]
 })
 export class AppModule { }
